@@ -1,13 +1,16 @@
 #!/bin/bash
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOG_DIR="$SCRIPT_DIR/logs"
+mkdir -p "$LOG_DIR"
 current_date="$(date '+%Y-%m-%d')"
-
-if [ ! -f "/root/task1/logs/metrics_$current_date" ]; then
-	touch /root/task1/logs/metrics_$current_date.log
-fi
-
-LOG_FILE=/root/task1/logs/metrics_$current_date.log
+LOG_FILE="$LOG_DIR/metrics_$current_date.log"
+# LOG_FILE=/root/task1/logs/metrics_$current_date.log
 HEAD_FILE=$'TIMESTAMP\t  | CPU_1min | CPU_5min | CPU_15min | MemTotal\t | MemAvailable\t | MemFree\t | DiskUsed%'
+
+if [ ! -f "$LOG_FILE" ]; then
+	touch "$LOG_FILE"
+fi
 
 if [ ! -w "$LOG_FILE" ]; then
 	exit 2
@@ -43,16 +46,20 @@ catch_signal () {
 	exit 0
 }
 
+write_to_log () {
+	if [ ! -w "$LOG_FILE" ]; then 
+		exit 2
+	else 
+		collection_metrics >> $LOG_FILE
+	fi	
+}
+
 if [[ "$1" == "--daemon" && "$2" == "--interval" ]]; then
 	echo "You entered interval mode"
 	interval="$3"
 	while true;
 	do
-		if [ ! -w "$LOG_FILE" ]; then 
-			exit 2
-		else
-			collection_metrics >> "$LOG_FILE" 
-		fi
+		write_to_log
 		sleep $interval;
 	done &
 elif [ "$1" == "--daemon" ]; then
@@ -60,11 +67,7 @@ elif [ "$1" == "--daemon" ]; then
 	while true;
 	do
 		trap catch_signal INT TERM EXIT
-		if [ ! -w "$LOG_FILE" ]; then
-			exit 2
-		else
-			collection_metrics >> "$LOG_FILE" 
-		fi
+		write_to_log
 		sleep 10
 	done &
 else
