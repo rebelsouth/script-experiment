@@ -2,10 +2,13 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_DIR="$SCRIPT_DIR/logs"
-mkdir -p "$LOG_DIR"
+
+if [ ! -e "$LOGDIR" ]; then
+	mkdir -p "$LOG_DIR"
+fi
+
 current_date="$(date '+%Y-%m-%d')"
 LOG_FILE="$LOG_DIR/metrics_$current_date.log"
-# LOG_FILE=/root/task1/logs/metrics_$current_date.log
 HEAD_FILE=$'TIMESTAMP\t  | CPU_1min | CPU_5min | CPU_15min | MemTotal\t | MemAvailable\t | MemFree\t | DiskUsed%'
 
 if [ ! -f "$LOG_FILE" ]; then
