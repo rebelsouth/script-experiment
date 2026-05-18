@@ -1,0 +1,16 @@
+version: "3"
+
+services:
+  metric_app:
+    build: .
+    container_name: metric_app
+    volumes:
+      - /proc/meminfo:/proc/meminfo:ro
+      - /proc/loadavg:/proc/loadavg:ro
+      - /:/host:ro
+    environment:
+      METRICS_INTERVAL: 10
+      METRICS_DAEMON: 1 
+    
+    restart: unless-stopped
+
