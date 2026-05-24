@@ -12,6 +12,8 @@
    - name: Install Docker
      shell: |
       curl -fsSL https://get.docker.com -o get-docker.sh && sudo sh get-docker.sh
+     args:
+      creates: /usr/bin/docker
 
    - name: Check docker is installed
      command: docker --version
@@ -29,7 +31,7 @@
       password: "{{ vaulted_password | password_hash('sha512') }}"
       update_password: on_create
       groups: docker
-      append: no
+      append: yes
 
    - name: Check docker is active
      service:
@@ -61,7 +63,7 @@
        mode: '0755'
 
    - name: Give extra roots 
-     shell: chown -R 1000:1000 /var/lib/metrics
+     shell: chown -R 1000:1000 /var/log/metrics
 
    - name: Docker compose
      community.docker.docker_compose_v2:
@@ -86,9 +88,13 @@
 
    - name: Check log file exists
      stat: 
-      path: /var/log/metric/*.log
-      register: stat_result
-      changed_when: false
+      path: /var/log/metrics/metrics_*.log
+      get_attributes: true
+
+   - name: Check log file contains metrics
+     command: tail -n 5 /var/log/metrics/metrics_*.log
+     register: log_content
+     failed_when: log_content.stdout == "" or "TIMESTAMP" not in log_content.stdout
      
 
     
