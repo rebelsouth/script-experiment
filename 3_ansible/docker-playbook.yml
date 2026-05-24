@@ -55,6 +55,7 @@
        - /root/task1/full_repo/2_docker/docker-compose.yml
        - /root/task1/full_repo/2_docker/metrics.sh
        - /root/task1/full_repo/2_docker/.env
+     notify: restart containers
 
    - name: Create directory for logs
      ansible.builtin.file:
@@ -68,8 +69,6 @@
    - name: Docker compose
      community.docker.docker_compose_v2:
       project_src: /home/ansible_user/project
-      build: always
-      recreate: always
       state: present
   
    - name: Check container is running
@@ -91,10 +90,20 @@
       path: /var/log/metrics/metrics_*.log
       get_attributes: true
 
-   - name: Check log file contains metrics
-     command: tail -n 5 /var/log/metrics/metrics_*.log
-     register: log_content
-     failed_when: log_content.stdout == "" or "TIMESTAMP" not in log_content.stdout
-     
+   - name: Find latest log file
+     find: 
+      paths: /var/log/metrics
+      pattern: "metrics_*.log"
+     register: log_file
 
-    
+   - name: Check log file contains metrics
+     command: tail -n 5 "{{ log_file.files[0].path }}"
+     register: log_content
+     failed_when: log_content.stdout == "" or log_content.stdout.startswith("TIMESTAMP") 
+      
+  handlers:
+    - name: restart containers
+      community.docker.docker_compose_v2:
+        project_src: /home/ansible_user/project
+        build: always
+        state: present 
