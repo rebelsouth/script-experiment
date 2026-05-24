@@ -2,6 +2,8 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_DIR="$SCRIPT_DIR/logs"
+interval="$METRICS_INTERVAL:-10"
+isDaemon="$METRICS_DAEMON:-1"
 
 if [ ! -e "$LOG_DIR" ]; then
 	mkdir -p "$LOG_DIR"
@@ -57,21 +59,13 @@ write_to_log () {
 	fi	
 }
 
-if [[ "$1" == "--daemon" && "$2" == "--interval" ]]; then
-	echo "You entered interval mode"
-	interval="$3"
-	while true;
-	do
-		write_to_log
-		sleep $interval;
-	done &
-elif [ "$1" == "--daemon" ]; then
+if [ "$isDaemon" -eq "1" ]; then
 	echo "You entered daemon mode"
 	while true;
 	do
 		trap catch_signal INT TERM EXIT
 		write_to_log
-		sleep 10
+		sleep "$interval"
 	done &
 else
 	echo "You entered single mode"

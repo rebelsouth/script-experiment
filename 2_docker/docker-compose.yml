@@ -8,9 +8,8 @@ services:
       - /proc/meminfo:/proc/meminfo:ro
       - /proc/loadavg:/proc/loadavg:ro
       - /:/host:ro
-    environment:
-      METRICS_INTERVAL: 10
-      METRICS_DAEMON: 1 
+      - /var/log/metrics:/app/logs
+    env_file: .env
     
     restart: unless-stopped
 
