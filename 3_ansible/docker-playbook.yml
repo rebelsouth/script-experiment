@@ -1,0 +1,94 @@
+---
+- name: Installing docker
+  hosts: docker_hosts
+  become: yes
+
+  vars:
+   vaulted_password: q1w2e3r4
+   metrics_interval: 10
+   metrics_daemon: 1
+
+  tasks:
+   - name: Install Docker
+     shell: |
+      curl -fsSL https://get.docker.com -o get-docker.sh && sudo sh get-docker.sh
+
+   - name: Check docker is installed
+     command: docker --version
+     register: docker_version
+     changed_when: false
+
+   - name: Add docker group
+     group:
+      name: docker
+      state: present
+
+   - name: Add user ansible_user
+     user:
+      name: ansible_user
+      password: "{{ vaulted_password | password_hash('sha512') }}"
+      update_password: on_create
+      groups: docker
+      append: no
+
+   - name: Check docker is active
+     service:
+      name: docker
+      state: started
+      enabled: yes
+
+   - name: Creating directory for files
+     ansible.builtin.file: 
+      path: /home/ansible_user/project
+      state: directory
+      mode: '0755'
+
+   - name: Copy script and docker files
+     copy:
+      src: "{{ item }}" 
+      dest: /home/ansible_user/project
+      mode: '0755'
+     loop: 
+       - /root/task1/full_repo/2_docker/Dockerfile
+       - /root/task1/full_repo/2_docker/docker-compose.yml
+       - /root/task1/full_repo/2_docker/metrics.sh
+       - /root/task1/full_repo/2_docker/.env
+
+   - name: Create directory for logs
+     ansible.builtin.file:
+       path: /var/log/metrics
+       state: directory
+       mode: '0755'
+
+   - name: Give extra roots 
+     shell: chown -R 1000:1000 /var/lib/metrics
+
+   - name: Docker compose
+     community.docker.docker_compose_v2:
+      project_src: /home/ansible_user/project
+      build: always
+      recreate: always
+      state: present
+  
+   - name: Check container is running
+     shell: docker ps -a | grep metric_app
+     register: container_status
+     failed_when: false
+
+   - name: Get container logs
+     command: docker logs metric_app
+     register: logs
+     changed_when: false
+
+   - name: Show container logs
+     debug: 
+      msg: "{{ logs.stdout_lines }}"
+
+   - name: Check log file exists
+     stat: 
+      path: /var/log/metric/*.log
+      register: stat_result
+      changed_when: false
+     
+
+    
